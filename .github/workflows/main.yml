@@ -24,6 +24,8 @@ jobs:
     
     - name: Lighthouse Audit
       uses: jakejarvis/lighthouse-action@v0.3.2
+      with:
+        url: 'https://robertwbradford.github.io'
 
 #     # Runs a single command using the runners shell
 #     - name: Run a one-line script
