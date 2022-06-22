@@ -1,141 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Earthquake data" />
+    <title>Earthquakes</title>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Earthquake data">
-  <title>Earthquakes</title>
-
-  <style>
-    :root {
-      --chart-aspect-ratio: 2;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      font: 16px/1 monospace;
-      height: 100%;
-    }
-
-    body {
-      padding: 1rem;
-      margin: 0;
-    }
-
-    figcaption {
-      text-align: center;
-      padding: 1rem;
-    }
-
-    footer {
-      font-size: 0.8rem;
-      text-align: center;
-    }
-
-    #dailycountchart {
-      aspect-ratio: var(--chart-aspect-ratio);
-    }
-  </style>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"></script>
-</head>
-
-<body>
-  <h1>Earthquakes</h1>
-  <article>
-    <figure>
-      <figcaption>Daily Earthquake Count by Magnitude</figcaption>
-      <div id="dailycountchart">
-        <canvas></canvas>
-      </div>
-    </figure>
-    <footer>Data from <a
-        href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php">https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php</a>
-    </footer>
-  </article>
-
-  <script type="module">
-    import colors from "./colors.js";
-
-    const dailyCountChartElement = document.getElementById("dailycountchart");
-    const dailyCountChartCanvas = dailyCountChartElement.querySelector("canvas");
-    const chartContext = dailyCountChartCanvas.getContext("2d");
-
-    function sorter(a, b) {
-      if (a.label < b.label) {
-        return -1;
+    <style>
+      :root {
+        --chart-aspect-ratio: 2;
       }
-      if (a.label > b.label) {
-        return 1;
+
+      html {
+        font: 16px/1 monospace;
       }
-      return 0;
-    }
 
-    function transform(data) {
-      const { features } = data;
-      const sortedFeatures = [...features].reverse()
-      const magnitudes = {}
+      body {
+        margin: 1rem;
+      }
 
-      const transformed = sortedFeatures.reduce((acc, earthquake) => {
-        const { properties: { mag, time } } = earthquake;
-        const day = new Date(time).toLocaleDateString();
-        const magnitude = mag.toFixed(1);
+      figcaption {
+        text-align: center;
+        padding: 1rem;
+      }
 
-        // Ensure the day is in labels
-        const initialDayIndex = acc.labels.indexOf(day);
-        const dayIndex = initialDayIndex === -1 ? acc.labels.push(day) - 1 : initialDayIndex;
+      footer {
+        font-size: 0.8rem;
+        text-align: center;
+      }
 
-        // Ensure there is a dataset for the magnitudes
-        if (!magnitudes[magnitude]) {
-          magnitudes[magnitude] = { label: magnitude, data: [], backgroundColor: colors[magnitude] }
+      #dailycountchart {
+        aspect-ratio: var(--chart-aspect-ratio);
+      }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.bundle.min.js"></script>
+  </head>
+
+  <body>
+    <main>
+      <h1>Earthquakes</h1>
+      <figure>
+        <figcaption>Daily Earthquake Count by Magnitude</figcaption>
+        <div id="dailycountchart">
+          <canvas></canvas>
+        </div>
+      </figure>
+      <footer>
+        Data from
+        <a href="https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php"
+          >https://earthquake.usgs.gov/earthquakes/feed/v1.0/geojson.php</a
+        >
+      </footer>
+    </main>
+
+    <script type="module">
+      import colors from "./colors.js";
+
+      const dailyCountChartElement = document.getElementById("dailycountchart");
+      const dailyCountChartCanvas =
+        dailyCountChartElement.querySelector("canvas");
+      const chartContext = dailyCountChartCanvas.getContext("2d");
+
+      function sorter(a, b) {
+        if (a.label < b.label) {
+          return -1;
         }
+        if (a.label > b.label) {
+          return 1;
+        }
+        return 0;
+      }
 
-        // Increment the count for the magnitude
-        const currentCount = magnitudes[magnitude].data[dayIndex] || 0;
-        magnitudes[magnitude].data[dayIndex] = currentCount + 1;
+      function transform(data) {
+        const { features } = data;
+        const sortedFeatures = [...features].reverse();
+        const magnitudes = {};
 
-        return acc;
-      }, { labels: [] });
+        const transformed = sortedFeatures.reduce(
+          (acc, earthquake) => {
+            const {
+              properties: { mag, time },
+            } = earthquake;
+            const day = new Date(time).toLocaleDateString();
+            const magnitude = mag.toFixed(1);
 
-      transformed.datasets = Object.values(magnitudes).sort(sorter)
+            // Ensure the day is in labels
+            const initialDayIndex = acc.labels.indexOf(day);
+            const dayIndex =
+              initialDayIndex === -1
+                ? acc.labels.push(day) - 1
+                : initialDayIndex;
 
-      return transformed;
-    }
-
-    fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson")
-      .then(response => response.json())
-      .then(transform)
-      .then(data => {
-        new Chart(chartContext, {
-          type: 'bar',
-          data,
-          options: {
-            aspectRatio: getComputedStyle(document.documentElement).getPropertyValue("--chart-aspect-ratio").trim(),
-            legend: {
-              display: false
-            },
-            scales: {
-              xAxes: [{
-                stacked: true,
-                gridLines: {
-                  display: false
-                }
-              }],
-              yAxes: [{
-                stacked: true
-              }]
+            // Ensure there is a dataset for the magnitudes
+            if (!magnitudes[magnitude]) {
+              magnitudes[magnitude] = {
+                label: magnitude,
+                data: [],
+                backgroundColor: colors[magnitude],
+              };
             }
-          }
-        });
-      })
-      .catch((error) => {
-        dailyCountChartElement.innerText = "Chart could not load 😰";
-      });
-  </script>
-</body>
 
+            // Increment the count for the magnitude
+            const currentCount = magnitudes[magnitude].data[dayIndex] || 0;
+            magnitudes[magnitude].data[dayIndex] = currentCount + 1;
+
+            return acc;
+          },
+          { labels: [] }
+        );
+
+        transformed.datasets = Object.values(magnitudes).sort(sorter);
+
+        return transformed;
+      }
+
+      fetch(
+        "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_month.geojson"
+      )
+        .then((response) => response.json())
+        .then(transform)
+        .then((data) => {
+          new Chart(chartContext, {
+            type: "bar",
+            data,
+            options: {
+              aspectRatio: getComputedStyle(document.documentElement)
+                .getPropertyValue("--chart-aspect-ratio")
+                .trim(),
+              legend: {
+                display: false,
+              },
+              scales: {
+                xAxes: [
+                  {
+                    stacked: true,
+                    gridLines: {
+                      display: false,
+                    },
+                  },
+                ],
+                yAxes: [
+                  {
+                    stacked: true,
+                  },
+                ],
+              },
+            },
+          });
+        })
+        .catch((error) => {
+          dailyCountChartElement.innerText = "Chart could not load 😰";
+        });
+    </script>
+  </body>
 </html>
